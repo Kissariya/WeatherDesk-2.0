@@ -115,6 +115,19 @@ class BackendRepository(
     }
     // ---------------------------------------
     // Location
+    suspend fun searchLocations(query: String): List<GeocodingResult> = withContext(Dispatchers.IO) {
+        if (query.isBlank()) return@withContext emptyList()
+
+        try {
+            client.get("$baseUrl/geocode") {
+                url.parameters.append("q", query)
+            }.body()
+        } catch (e: Exception) {
+            logger.error(e) { "Failed to fetch geolocation autocomplete" }
+            emptyList()
+        }
+    }
+
     suspend fun saveLocation(location: Location) = withContext(Dispatchers.IO) {
         client.post("$baseUrl/location") {
             addAuth(this)

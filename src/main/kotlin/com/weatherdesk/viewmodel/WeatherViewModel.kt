@@ -4,6 +4,7 @@ import com.weatherdesk.model.*
 import com.weatherdesk.repository.BackendRepository
 import javafx.application.Platform
 import javafx.beans.property.*
+import javafx.collections.FXCollections.observableArrayList
 import kotlinx.coroutines.*
 import mu.KotlinLogging
 
@@ -27,8 +28,8 @@ class WeatherViewModel(private val repository: BackendRepository) {
     val successMessage = SimpleStringProperty("")
 
     // User preferences
-    val temperatureUnit = SimpleObjectProperty<TemperatureUnit>(TemperatureUnit.CELSIUS)
-    val windSpeedUnit = SimpleObjectProperty<WindSpeedUnit>(WindSpeedUnit.KILOMETERS_PER_HOUR)
+    val temperatureUnit = SimpleObjectProperty(TemperatureUnit.CELSIUS)
+    val windSpeedUnit = SimpleObjectProperty(WindSpeedUnit.KILOMETERS_PER_HOUR)
 
     // Input validation
     val cityInput = SimpleStringProperty("")
@@ -41,7 +42,18 @@ class WeatherViewModel(private val repository: BackendRepository) {
     val currentRating = SimpleIntegerProperty(0)
     val averageRating = SimpleDoubleProperty(0.0)
 
-    //
+    // Geocoding Autocomplete
+    val autocompleteResults =
+        SimpleListProperty<GeocodingResult>(observableArrayList())
+
+    val autocompleteQuery = SimpleStringProperty("")
+    private var autocompleteJob: Job? = null
+
+    // Account
+    val loginEmail = SimpleStringProperty("")
+    val loginPassword = SimpleStringProperty("")
+    val isLoggedIn = SimpleBooleanProperty(false)
+    val authToken = SimpleStringProperty("")
 
     init {
         loadUserPreferences()
@@ -168,6 +180,38 @@ class WeatherViewModel(private val repository: BackendRepository) {
     }
 
     /**
+     * Login to account
+     */
+    fun login() {
+        scope.launch {
+            try {
+                val email = loginEmail.get()
+                val password = loginPassword.get()
+
+                val response = repository.login(email, password)
+
+                Platform.runLater {
+                    authToken.set(response.token)
+                    isLoggedIn.set(true)
+                    updateSuccess("Successfully logged in!")
+                }
+            } catch (e: Exception) {
+                updateError("Login failed: ${e.message}")
+            }
+        }
+    }
+
+    /**
+     * Logout of account
+     */
+    fun logout() {
+        authToken.set("")
+        isLoggedIn.set(false)
+
+        successMessage.set("Logged out")
+    }
+
+    /**
      * Submit rating for current forecast
      */
     fun submitRating() {
@@ -228,6 +272,29 @@ class WeatherViewModel(private val repository: BackendRepository) {
     fun setWindSpeedUnit(unit: WindSpeedUnit) {
         windSpeedUnit.set(unit)
         savePreferences()
+    }
+
+    /**
+     * Autocomplete location entry
+     */
+    fun handleAutocompleteInput() {
+        val query = autocompleteQuery.get().trim()
+        if (query.length < 2) {
+            autocompleteResults.clear()
+            return
+        }
+
+        autocompleteJob?.cancel()
+        autocompleteJob = scope.launch {
+            try {
+                val results = repository.searchLocations(query)
+                Platform.runLater {
+                    autocompleteResults.setAll(results)
+                }
+            } catch (e: Exception) {
+                logger.error(e) { "Autocomplete failed" }
+            }
+        }
     }
 
     /**

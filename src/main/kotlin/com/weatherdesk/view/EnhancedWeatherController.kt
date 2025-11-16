@@ -49,6 +49,9 @@ class EnhancedWeatherController {
     @FXML private lateinit var humidityLabel: Label
     @FXML private lateinit var windSpeedLabel: Label
     @FXML private lateinit var tempUnitComboBox: ComboBox<TemperatureUnit>
+    @FXML private lateinit var autocompleteList: ListView<GeocodingResult>
+    @FXML private lateinit var loginButton: Button
+    @FXML private lateinit var logoutButton: Button
 
     @FXML private lateinit var ratingStars: HBox
     @FXML private lateinit var averageRatingLabel: Label
@@ -83,6 +86,23 @@ class EnhancedWeatherController {
         setupTempUnitComboBox()
         setupRatingStars()
         setupEnhancedUI()
+        autocompleteList.setCellFactory {
+            object : ListCell<GeocodingResult>() {
+                override fun updateItem(item: GeocodingResult?, empty: Boolean) {
+                    super.updateItem(item, empty)
+                    text = if (empty || item == null) "" else "${item.name}, ${item.country ?: ""}"
+                }
+            }
+        }
+        autocompleteList.setOnMouseClicked {
+            val selected = autocompleteList.selectionModel.selectedItem
+            if (selected != null) {
+                cityTextField.text = "${selected.name}, ${selected.country ?: ""}".trim()
+                autocompleteList.isVisible = false
+                autocompleteList.isManaged = false
+                searchByCity()
+            }
+        }
     }
 
     /**
@@ -212,6 +232,10 @@ class EnhancedWeatherController {
         cityTextField.textProperty().bindBidirectional(viewModel.cityInput)
         latitudeTextField.textProperty().bindBidirectional(viewModel.latitudeInput)
         longitudeTextField.textProperty().bindBidirectional(viewModel.longitudeInput)
+        cityTextField.textProperty().addListener { _, _, newValue ->
+            viewModel.autocompleteQuery.set(newValue)
+            viewModel.handleAutocompleteInput()
+        }
 
         // Bind loading state
         viewModel.isLoading.addListener { _, _, isLoading ->
@@ -239,6 +263,18 @@ class EnhancedWeatherController {
                     errorLabel.isVisible = true
                     errorLabel.isManaged = true
                 }
+            }
+        }
+
+        // Bind autocomplete
+        viewModel.autocompleteResults.addListener { _, _, newList ->
+            if (newList != null && newList.isNotEmpty()) {
+                autocompleteList.items.setAll(newList)
+                autocompleteList.isVisible = true
+                autocompleteList.isManaged = true
+            } else {
+                autocompleteList.isVisible = false
+                autocompleteList.isManaged = false
             }
         }
 
@@ -278,6 +314,26 @@ class EnhancedWeatherController {
         viewModel.forecast.addListener { _, _, forecasts ->
             Platform.runLater {
                 updateForecastDisplay(forecasts?.toList() ?: emptyList())
+            }
+        }
+
+        viewModel.isLoggedIn.addListener { _, _, loggedIn ->
+            if (loggedIn) {
+                loginButton.isVisible = true
+                loginButton.isManaged = true
+
+                logoutButton.isVisible = true
+                logoutButton.isManaged = true
+
+                backendStatusLabel.text = "Logged in"
+            } else {
+                loginButton.isVisible = true
+                loginButton.isManaged = true
+
+                logoutButton.isVisible = false
+                logoutButton.isManaged = false
+
+                backendStatusLabel.text = "Logged out"
             }
         }
 
@@ -473,6 +529,41 @@ class EnhancedWeatherController {
         if (selectedUnit != null) {
             viewModel.setTemperatureUnit(selectedUnit)
         }
+    }
+
+    @FXML
+    private fun onLoginClicked() {
+        val dialog = TextInputDialog()
+        dialog.title = "Login"
+        dialog.headerText = "Enter your email"
+        dialog.contentText = "Email:"
+
+        val email = dialog.showAndWait().orElse(null) ?: return
+
+        val pwdDialog = TextInputDialog()
+        pwdDialog.title = "Login"
+        pwdDialog.headerText = "Enter password"
+        pwdDialog.contentText = "Password:"
+
+        val password = pwdDialog.showAndWait().orElse(null) ?: return
+
+        viewModel.loginEmail.set(email)
+        viewModel.loginPassword.set(password)
+        viewModel.login()
+    }
+
+
+    @FXML
+    private fun onLogoutClicked() {
+        viewModel.logout()
+
+        loginButton.isVisible = true
+        loginButton.isManaged = true
+
+        logoutButton.isVisible = false
+        logoutButton.isManaged = false
+
+        backendStatusLabel.text = "Logged out"
     }
 
     @FXML

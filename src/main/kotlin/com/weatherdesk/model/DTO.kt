@@ -51,6 +51,13 @@ data class Location(
     val longitude: Double
 )
 
+data class GeocodingResult(
+    val name: String,
+    val latitude: Double,
+    val longitude: Double,
+    val country: String?
+)
+
 sealed class LocationInput {
     data class City(val name: String) : LocationInput()
     data class Coordinates(val latitude: Double, val longitude: Double) : LocationInput()

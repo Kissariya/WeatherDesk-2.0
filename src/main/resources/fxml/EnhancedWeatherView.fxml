@@ -7,7 +7,7 @@
 
 <StackPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
            fx:controller="com.weatherdesk.view.EnhancedWeatherController"
-           stylesheets="@../styles/modern-weather.css">
+           stylesheets="@/styles/modern-weather.css">
 
     <!-- Background with particles -->
     <Pane fx:id="backgroundPane" styleClass="main-pane">
@@ -18,7 +18,7 @@
     <BorderPane>
         <!-- Header -->
         <top>
-            <VBox styleClass="header glass-card" spacing="10">
+            <VBox styleClass="header-glass-card" spacing="10">
                 <padding>
                     <Insets top="30" right="40" bottom="30" left="40"/>
                 </padding>
@@ -81,6 +81,13 @@
                                     </font>
                                 </Button>
                             </HBox>
+
+                            <ListView fx:id="autocompleteList"
+                                      maxHeight="180"
+                                      visible="false"
+                                      managed="false"
+                                      styleClass="glass-card"
+                                      VBox.vgrow="NEVER"/>
                         </VBox>
 
                         <!-- Globe OR Coordinate Input -->
@@ -178,8 +185,8 @@
 
                             <HBox spacing="50" alignment="CENTER">
                                 <VBox alignment="CENTER_LEFT" spacing="10">
-                                    <HBox alignment="BASELINE" spacing="0">
-                                        <Label fx:id="temperatureLabel" styleClass="temperature-label" textFill="WHITE">
+                                    <HBox alignment="BASELINE_CENTER">
+                                        <Label fx:id="temperatureLabel" styleClass="temperature-label" textFill="white">
                                             <font>
                                                 <Font name="System Bold" size="96"/>
                                             </font>
@@ -260,6 +267,9 @@
                                         <Font name="System Bold" size="18"/>
                                     </font>
                                 </Label>
+                                <StackPane fx:id="activitiesRecommendationContainer"
+                                           prefHeight="200"
+                                           styleClass="glass-card"/>
                                 <Label fx:id="activityLabel"
                                      wrapText="true"
                                      styleClass="content-text"
@@ -321,8 +331,18 @@
                 <padding>
                     <Insets top="15" right="30" bottom="15" left="30"/>
                 </padding>
-                <Label fx:id="firebaseStatusLabel"
-                     text="Firebase: Not Connected"
+                <Button fx:id="loginButton"
+                        text="Login"
+                        onAction="#onLoginClicked"
+                        styleClass="glass-button"/>
+                <Button fx:id="logoutButton"
+                        text="Logout"
+                        visible="false"
+                        managed="false"
+                        onAction="#onLogoutClicked"
+                        styleClass="glass-button"/>
+                <Label fx:id="backendStatusLabel"
+                     text="Backend: Not Connected"
                      styleClass="status-label"
                      textFill="rgba(255,255,255,0.8)"/>
                 <Region HBox.hgrow="ALWAYS"/>

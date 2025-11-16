@@ -26,7 +26,9 @@ class WeatherDeskApplication : Application() {
             logger.info { "Starting WeatherDesk application..." }
 
             // Initialize backend and ViewModel
-            backendRepository = BackendRepository("http://localhost:8080")
+            backendRepository = BackendRepository("http://localhost:8080",
+                tokenProvider = { viewModel.authToken.get() }
+            )
             viewModel = WeatherViewModel(backendRepository)
 
             // Load Enhanced FXML
