@@ -1,7 +1,7 @@
 package com.weatherdesk.viewmodel
 
 import com.weatherdesk.model.*
-import com.weatherdesk.repository.WeatherRepository
+import com.weatherdesk.repository.BackendRepository
 import javafx.application.Platform
 import javafx.beans.property.*
 import kotlinx.coroutines.*
@@ -13,13 +13,15 @@ private val logger = KotlinLogging.logger {}
  * ViewModel for weather application following MVVM pattern
  * Manages UI state and business logic
  */
-class WeatherViewModel(private val repository: WeatherRepository) {
+class WeatherViewModel(private val repository: BackendRepository) {
 
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
     // Observable properties for UI binding
     val currentWeather = SimpleObjectProperty<CurrentWeather?>()
-    val forecast = SimpleListProperty<DailyForecast>()
+    val forecast = SimpleListProperty<DailyForecast>(
+        javafx.collections.FXCollections.observableArrayList()
+    )
     val isLoading = SimpleBooleanProperty(false)
     val errorMessage = SimpleStringProperty("")
     val successMessage = SimpleStringProperty("")
@@ -33,10 +35,13 @@ class WeatherViewModel(private val repository: WeatherRepository) {
     val latitudeInput = SimpleStringProperty("")
     val longitudeInput = SimpleStringProperty("")
     val isCoordinateMode = SimpleBooleanProperty(false)
+    val locationInput = SimpleStringProperty("")
 
     // Rating
     val currentRating = SimpleIntegerProperty(0)
     val averageRating = SimpleDoubleProperty(0.0)
+
+    //
 
     init {
         loadUserPreferences()
@@ -49,25 +54,23 @@ class WeatherViewModel(private val repository: WeatherRepository) {
         scope.launch {
             try {
                 val prefs = repository.getUserPreferences()
-                temperatureUnit.set(prefs.preferredTempUnit)
-                windSpeedUnit.set(prefs.preferredWindUnit)
-
-                // Load last searched location if available
+                Platform.runLater {
+                    temperatureUnit.set(prefs.preferredTempUnit)
+                    windSpeedUnit.set(prefs.preferredWindUnit)
+                }
                 if (prefs.lastSearchedCity != null) {
-                    if (prefs.lastSearchedLatitude != null && prefs.lastSearchedLongitude != null) {
+                    Platform.runLater { cityInput.set(prefs.lastSearchedCity) }
+                    fetchWeatherByCity()
+                } else if (prefs.lastSearchedLatitude != null && prefs.lastSearchedLongitude != null) {
+                    Platform.runLater {
                         latitudeInput.set(prefs.lastSearchedLatitude.toString())
                         longitudeInput.set(prefs.lastSearchedLongitude.toString())
                         isCoordinateMode.set(true)
-                        fetchWeatherByCoordinates()
-                    } else {
-                        cityInput.set(prefs.lastSearchedCity)
-                        fetchWeatherByCity()
                     }
+                    fetchWeatherByCoordinates()
                 }
-
-                logger.info { "User preferences loaded successfully" }
             } catch (e: Exception) {
-                logger.error(e) { "Error loading user preferences" }
+                logger.error(e) { "Failed to load prefs" }
             }
         }
     }
@@ -145,21 +148,19 @@ class WeatherViewModel(private val repository: WeatherRepository) {
             errorMessage.set("")
             successMessage.set("")
 
-            when (val result = repository.getWeather(location)) {
-                is Result.Success -> {
-                    currentWeather.set(result.data.current)
-                    forecast.set(javafx.collections.FXCollections.observableArrayList(result.data.forecast))
-                    updateSuccess("Weather data loaded successfully for ${result.data.current.city}")
-                    loadAverageRating(result.data.current.city)
-                    logger.info { "Weather fetched successfully for ${result.data.current.city}" }
+            try {
+                val data = when (location) {
+                    is LocationInput.City -> repository.getWeatherByCity(location.name)
+                    is LocationInput.Coordinates -> repository.getWeatherByCoordinates(location.latitude, location.longitude)
                 }
-                is Result.Error -> {
-                    updateError(result.message)
-                    logger.error { "Failed to fetch weather: ${result.message}" }
-                }
-                is Result.Loading -> {
-                    // Already handled by isLoading property
-                }
+
+                currentWeather.set(data.current)
+                    forecast.set(javafx.collections.FXCollections.observableArrayList(data.forecast))
+                    updateSuccess("Weather data loaded successfully for ${data.current.city}")
+                    loadAverageRating(data.current.city)
+                    logger.info { "Weather fetched successfully for ${data.current.city}" }
+            } catch (e: Exception) {
+                logger.error(e) { "Failed to fetch weather data" }
             }
 
             isLoading.set(false)
@@ -273,10 +274,10 @@ class WeatherViewModel(private val repository: WeatherRepository) {
     }
 
     /**
-     * Check if Firebase is available
+     * Check if Backend is available
      */
-    fun isFirebaseAvailable(): Boolean {
-        return repository.isFirebaseAvailable()
+    fun isBackendAvailable(): Boolean {
+        return repository.isBackendAvailable()
     }
 
     /**

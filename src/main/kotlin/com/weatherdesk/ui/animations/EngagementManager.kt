@@ -46,8 +46,8 @@ class EngagementManager(
                     }
                 }
             },
-            30000, // First rotation after 30 seconds
-            30000  // Then every 30 seconds
+            30000L, // First rotation after 30 seconds
+            30000L  // Then every 30 seconds
         )
     }
     
@@ -55,48 +55,52 @@ class EngagementManager(
      * Rotate the displayed content
      */
     private fun rotateContent() {
-        // Fade out current content
-        UIAnimations.fadeOut(triviaLabel, 300.0) {
-            // Update trivia
-            triviaLabel.text = WeatherContent.getWeatherTrivia(currentWeatherCondition)
-            UIAnimations.fadeIn(triviaLabel, 300.0)
+        try {
+            // Fade out current content
+            UIAnimations.fadeOut(triviaLabel, 300.0) {
+                // Update trivia
+                triviaLabel.text = WeatherContent.getWeatherTrivia(currentWeatherCondition)
+                UIAnimations.fadeIn(triviaLabel, 300.0)
+            }
+
+            // Fade out and update quote with delay
+            Timer().schedule(
+                object : TimerTask() {
+                    override fun run() {
+                        Platform.runLater {
+                            UIAnimations.fadeOut(quoteLabel, 300.0) {
+                                quoteLabel.text = WeatherContent.getMotivationalQuote(
+                                    currentWeatherCondition,
+                                    currentTemperature
+                                )
+                                UIAnimations.fadeIn(quoteLabel, 300.0)
+                            }
+                        }
+                    }
+                },
+                500L
+            )
+
+            // Fade out and update activity with delay
+            Timer(true).schedule(
+                object : TimerTask() {
+                    override fun run() {
+                        Platform.runLater {
+                            UIAnimations.fadeOut(activityLabel, 300.0) {
+                                activityLabel.text = WeatherContent.getActivitySuggestion(
+                                    currentWeatherCondition,
+                                    currentTemperature
+                                )
+                                UIAnimations.fadeIn(activityLabel, 300.0)
+                            }
+                        }
+                    }
+                },
+                UIConstants.CONTENT_ROTATION_INTERVAL_MS
+            )
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
-        
-        // Fade out and update quote with delay
-        Timer().schedule(
-            object : TimerTask() {
-                override fun run() {
-                    Platform.runLater {
-                        UIAnimations.fadeOut(quoteLabel, 300.0) {
-                            quoteLabel.text = WeatherContent.getMotivationalQuote(
-                                currentWeatherCondition,
-                                currentTemperature
-                            )
-                            UIAnimations.fadeIn(quoteLabel, 300.0)
-                        }
-                    }
-                }
-            },
-            500
-        )
-        
-        // Fade out and update activity with delay
-        Timer().schedule(
-            object : TimerTask() {
-                override fun run() {
-                    Platform.runLater {
-                        UIAnimations.fadeOut(activityLabel, 300.0) {
-                            activityLabel.text = WeatherContent.getActivitySuggestion(
-                                currentWeatherCondition,
-                                currentTemperature
-                            )
-                            UIAnimations.fadeIn(activityLabel, 300.0)
-                        }
-                    }
-                }
-            },
-            UIConstants.CONTENT_ROTATION_INTERVAL_MS
-        )
     }
     
     /**
@@ -112,7 +116,11 @@ class EngagementManager(
             object : TimerTask() {
                 override fun run() {
                     Platform.runLater {
-                        forecastCarousel?.showNext()
+                        try {
+                            forecastCarousel?.showNext()
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
                     }
                 }
             },
@@ -120,7 +128,7 @@ class EngagementManager(
             UIConstants.CAROUSEL_AUTO_PLAY_INTERVAL_MS  // Then every 5 seconds
         )
     }
-UIConstants.CAROUSEL_AUTO_PLAY_DELAY_MS
+
     /**
      * Stop carousel auto-play (when user interacts)
      */
@@ -132,7 +140,7 @@ UIConstants.CAROUSEL_AUTO_PLAY_DELAY_MS
     /**
      * Stop all timers
      */
-    fun sto All() {
+    fun stopAll() {
         contentRotationTimer?.cancel()
         contentRotationTimer = null
         carouselAutoPlayTimer?.cancel()

@@ -1,51 +1,49 @@
 package com.weatherdesk.ui.components
 
-import com.weatherdesk.model.DailyForecast
-import com.weatherdesk.model.TemperatureUnit
-import com.weatherdesk.model.WeatherCondition
+import com.weatherdesk.model.*
 import javafx.animation.*
 import javafx.geometry.Pos
+import javafx.scene.control.Label
 import javafx.scene.effect.DropShadow
-import javafx.scene.effect.PerspectiveTransform
 import javafx.scene.layout.*
 import javafx.scene.paint.Color
 import javafx.scene.text.Font
 import javafx.scene.text.FontWeight
-import javafx.scene.control.Label
 import javafx.util.Duration
 import kotlin.math.*
 
 /**
- * 3D Swipeable carousel for forecast cards
- * Cards appear in a 3D perspective with smooth animations
+ * 3D Swipeable carousel for forecast cards.
+ * Cards appear from a 3D perspective with smooth animations
  */
 class ForecastCarousel : StackPane() {
 
     private val cardsContainer = HBox(20.0)
     private val cards = mutableListOf<ForecastCard>()
-        private val loadingLabel = Label("Loading forecast...").apply {
-                    font = Font.font("System", FontWeight.BOLD, 20.0)
-                            textFill = Color.WHITE
-                    opacity = 0.8
-                    isVisible = false
-                }
+    private val loadingLabel = Label("Loading forecast...").apply {
+        font = Font.font("System", FontWeight.BOLD, 20.0)
+        textFill = Color.WHITE
+        opacity = 0.8
+        isVisible = false
+    }
 
-            private val emptyLabel = Label("No forecast data available").apply {
+    private val emptyLabel = Label("No forecast data available").apply {
         font = Font.font("System", FontWeight.NORMAL, 16.0)
         textFill = Color.LIGHTGRAY
         opacity = 0.8
         isVisible = false
     }
 
-                private val errorLabel = Label("Error loading forecast data").apply {
+    private val errorLabel = Label("Error loading forecast data").apply {
         font = Font.font("System", FontWeight.NORMAL, 16.0)
         textFill = Color.rgb(255, 100, 100)  // Light red for error
         opacity = 0.8
         isVisible = false
     }
+
     private var currentIndex = 0
-        private var isLoading = false
-        var onUserInteraction: (() -> Unit)? = null
+    private var isLoading = false
+    var onUserInteraction: (() -> Unit)? = null
 
     // Gesture tracking
     private var startX = 0.0
@@ -57,9 +55,9 @@ class ForecastCarousel : StackPane() {
 
         cardsContainer.alignment = Pos.CENTER
         children.add(cardsContainer)
-                children.add(loadingLabel)
-                            children.add(emptyLabel)
-            children.add(errorLabel)
+        children.add(loadingLabel)
+        children.add(emptyLabel)
+        children.add(errorLabel)
 
         setupGestureHandling()
     }
@@ -68,8 +66,8 @@ class ForecastCarousel : StackPane() {
      * Set forecast data and create cards
      */
     fun setForecasts(forecasts: List<DailyForecast>, unit: TemperatureUnit) {
-                // Show loading indicator
-                showLoading()
+        // Show loading indicator
+        showLoading()
         cards.clear()
         cardsContainer.children.clear()
 
@@ -86,8 +84,8 @@ class ForecastCarousel : StackPane() {
             highlightCard(0)
         }
 
-                // Hide loading indicator
-                        hideLoading()
+        // Hide loading indicator
+        hideLoading()
     }
 
     /**
@@ -113,11 +111,12 @@ class ForecastCarousel : StackPane() {
         setOnMousePressed { event ->
             startX = event.x
             isDragging = true
-                        onUserInteraction?.invoke()
+            onUserInteraction?.invoke()
         }
 
         setOnMouseDragged { event ->
             if (isDragging) {
+                onUserInteraction?.invoke()
                 val deltaX = event.x - startX
                 // Visual feedback during drag
                 cardsContainer.translateX = deltaX * 0.5
@@ -126,6 +125,7 @@ class ForecastCarousel : StackPane() {
 
         setOnMouseReleased { event ->
             if (isDragging) {
+                onUserInteraction?.invoke()
                 val deltaX = event.x - startX
                 if (abs(deltaX) > 50) {
                     if (deltaX > 0 && currentIndex > 0) {
@@ -142,11 +142,37 @@ class ForecastCarousel : StackPane() {
         // Arrow key support
         setOnKeyPressed { event ->
             when (event.code.toString()) {
-                "LEFT" -> showPrevious()
-                            onUserInteraction?.invoke()
-                "RIGHT" -> showNext()
-                            onUserInteraction?.invoke()
+                "LEFT" -> { showPrevious(); onUserInteraction?.invoke()}
+                "RIGHT" -> { showNext(); onUserInteraction?.invoke()}
             }
+        }
+
+        setOnMouseDragged { event ->
+            if (isDragging) {
+                onUserInteraction?.invoke()
+                val deltaX = event.x - startX
+                cardsContainer.translateX = deltaX * 0.5
+            }
+        }
+
+        setOnMouseReleased { event ->
+            if (isDragging) {
+                onUserInteraction?.invoke()
+                val deltaX = event.x - startX
+                if (abs(deltaX) > 50) {
+                    if (deltaX > 0 && currentIndex > 0) showPrevious()
+                    else if (deltaX < 0 && currentIndex < cards.size - 1) showNext()
+                }
+                animateToPosition()
+                isDragging = false
+            }
+        }
+
+        setOnScroll {
+            onUserInteraction?.invoke()
+
+            if (it.deltaX < 0 || it.deltaY < 0) showNext()
+            if (it.deltaX > 0 || it.deltaY > 0) showPrevious()
         }
     }
 
@@ -215,35 +241,31 @@ class ForecastCarousel : StackPane() {
      */
     private fun highlightCard(index: Int) {
         cards.forEachIndexed { i, card ->
-            if (i == index) {
-                card.setHighlighted(true)
-            } else {
-                card.setHighlighted(false)
-            }
+            card.setHighlighted(i == index)
         }
     }
 
-        /**
-             * Show loading indicator
-                  */
-                      private fun showLoading() {
-                                  isLoading = true
-                                  loadingLabel.isVisible = true
-                                  cardsContainer.isVisible = false
-                              }
+    /**
+    * Show loading indicator
+    */
+    private fun showLoading() {
+        isLoading = true
+        loadingLabel.isVisible = true
+        cardsContainer.isVisible = false
+    }
 
-                          /**
-                               * Hide loading indicator
-                                    */
-                                        private fun hideLoading() {
-                                                    isLoading = false
-                                                    loadingLabel.isVisible = false
-                                                    cardsContainer.isVisible = true
-                                                }
+    /**
+    * Hide loading indicator
+    */
+    private fun hideLoading() {
+        isLoading = false
+        loadingLabel.isVisible = false
+        cardsContainer.isVisible = true
+    }
 
-                                            /**
-     * Show empty state message
-     */
+    /**
+    * Show empty state message
+    */
     fun showEmptyState() {
         emptyLabel.isVisible = true
         errorLabel.isVisible = false
@@ -323,6 +345,9 @@ class ForecastCarousel : StackPane() {
          * Build card content
          */
         private fun buildCard() {
+            val conditionEnum = WeatherCondition.fromDescription(forecast.condition)
+            val icon = getWeatherIcon(conditionEnum)
+
             // Day name
             val dayLabel = Label(forecast.date.dayOfWeek.name.take(3))
             dayLabel.font = Font.font("System", FontWeight.BOLD, 24.0)
@@ -330,12 +355,12 @@ class ForecastCarousel : StackPane() {
             dayLabel.style = "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 5, 0, 0, 2);"
 
             // Weather icon
-            val iconLabel = Label(getWeatherIcon(forecast.condition))
+            val iconLabel = Label(icon)
             iconLabel.font = Font.font(64.0)
             iconLabel.style = "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 10, 0, 0, 3);"
 
             // Condition description
-            val conditionLabel = Label(forecast.conditionDescription.split(" ").joinToString("\n") { it.capitalize() })
+            val conditionLabel = Label(forecast.conditionDescription.split(" ").joinToString("\n") { it.replaceFirstChar { c -> c.uppercaseChar() } })
             conditionLabel.font = Font.font("System", FontWeight.NORMAL, 14.0)
             conditionLabel.textFill = Color.rgb(220, 220, 255)
             conditionLabel.isWrapText = true
@@ -348,7 +373,8 @@ class ForecastCarousel : StackPane() {
             tempLabel.style = "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 5, 0, 0, 2);"
 
             // Temperature unit indicator
-            val unitLabel = Label(unit.symbol)
+            val unitSymbol = if (unit == TemperatureUnit.CELSIUS) "°C" else "°F"
+            val unitLabel = Label(unitSymbol)
             unitLabel.font = Font.font("System", FontWeight.NORMAL, 14.0)
             unitLabel.textFill = Color.rgb(200, 200, 255)
 
@@ -360,11 +386,7 @@ class ForecastCarousel : StackPane() {
          */
         fun setHighlighted(highlighted: Boolean) {
             isHighlighted = highlighted
-            if (highlighted) {
-                animateGlow(true)
-            } else {
-                animateGlow(false)
-            }
+            animateGlow(highlighted)
         }
 
         /**
@@ -388,7 +410,6 @@ class ForecastCarousel : StackPane() {
         private fun animateGlow(glow: Boolean) {
             val targetRadius = if (glow) 30.0 else 20.0
             val targetColor = if (glow) Color.rgb(100, 150, 255, 0.6) else Color.rgb(100, 150, 255, 0.0)
-
             val timeline = Timeline(
                 KeyFrame(
                     Duration.millis(400.0),
@@ -402,8 +423,7 @@ class ForecastCarousel : StackPane() {
         /**
          * Get weather emoji icon
          */
-        private fun getWeatherIcon(condition: WeatherCondition): String {
-            return when (condition) {
+        private fun getWeatherIcon(condition: WeatherCondition) = when (condition) {
                 WeatherCondition.CLEAR -> "☀️"
                 WeatherCondition.CLOUDS, WeatherCondition.BROKEN_CLOUDS -> "☁️"
                 WeatherCondition.FEW_CLOUDS, WeatherCondition.SCATTERED_CLOUDS -> "⛅"
@@ -412,7 +432,6 @@ class ForecastCarousel : StackPane() {
                 WeatherCondition.SNOW -> "❄️"
                 WeatherCondition.MIST -> "🌫️"
                 WeatherCondition.UNKNOWN -> "🌤️"
-            }
         }
     }
 }

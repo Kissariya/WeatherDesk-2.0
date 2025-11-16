@@ -4,6 +4,7 @@ import com.weatherdesk.model.WeatherCondition
 import com.weatherdesk.ui.content.WeatherContent
 import com.weatherdesk.util.UIConstants
 import javafx.animation.FadeTransition
+import javafx.animation.RotateTransition
 import javafx.animation.TranslateTransition
 import javafx.geometry.Insets
 import javafx.geometry.Pos
@@ -46,7 +47,7 @@ class ActivityRecommendationPanel : VBox() {
         setupLayout()
         setupStyling()
         setupInteractions()
-        logger.info { "ActivityRecommendationPanel initialized" }
+        logger.info { "Activity Recommendation Panel initialized" }
     }
     
     /**
@@ -68,7 +69,7 @@ class ActivityRecommendationPanel : VBox() {
         weatherContextLabel.font = Font.font("System", FontWeight.NORMAL, 14.0)
         weatherContextLabel.textAlignment = TextAlignment.CENTER
         weatherContextLabel.styleClass.add("weather-context")
-        weatherContextLabel.wrapText = true
+        weatherContextLabel.isWrapText = true
         
         // Activities container
         activitiesContainer.styleClass.add("activities-container")
@@ -80,7 +81,7 @@ class ActivityRecommendationPanel : VBox() {
         scrollPane.hbarPolicy = ScrollPane.ScrollBarPolicy.NEVER
         scrollPane.vbarPolicy = ScrollPane.ScrollBarPolicy.AS_NEEDED
         scrollPane.styleClass.add("activities-scroll")
-        VBox.setVgrow(scrollPane, Priority.ALWAYS)
+        setVgrow(scrollPane, Priority.ALWAYS)
         
         // Refresh button
         refreshButton.styleClass.addAll("refresh-button", "action-button")
@@ -139,7 +140,9 @@ class ActivityRecommendationPanel : VBox() {
         
         // Hover effect for button
         refreshButton.setOnMouseEntered {
-            refreshButton.style += "-fx-effect: dropshadow(gaussian, rgba(74,144,226,0.6), 8, 0.4, 0, 2);"
+            refreshButton.style += """
+                -fx-effect: dropshadow(gaussian, rgba(74,144,226,0.6), 8, 0.4, 0, 2);
+                """.trimIndent()
         }
         refreshButton.setOnMouseExited {
             refreshButton.style = """
@@ -183,7 +186,7 @@ class ActivityRecommendationPanel : VBox() {
             animateUpdate()
             
         } catch (e: Exception) {
-            logger.error(e) { "Error updating ActivityRecommendationPanel" }
+            logger.error(e) { "Error updating Activity Recommendation Panel" }
         }
     }
     
@@ -254,22 +257,20 @@ class ActivityRecommendationPanel : VBox() {
         // Icon/Number label
         val numberLabel = Label("${index + 1}")
         numberLabel.font = Font.font("System", FontWeight.BOLD, 20.0)
+        numberLabel.alignment = Pos.CENTER
+        numberLabel.prefWidth = 40.0
+        numberLabel.prefHeight = 40.0
         numberLabel.style = """
             -fx-background-color: linear-gradient(to bottom right, #4A90E2, #7B68EE);
             -fx-text-fill: white;
             -fx-background-radius: 20px;
-            -fx-min-width: 40px;
-            -fx-max-width: 40px;
-            -fx-min-height: 40px;
-            -fx-max-height: 40px;
-            -fx-alignment: center;
         """.trimIndent()
         numberLabel.alignment = Pos.CENTER
         
         // Activity text label
         val activityLabel = Label(activity)
         activityLabel.font = Font.font("System", FontWeight.NORMAL, 16.0)
-        activityLabel.wrapText = true
+        activityLabel.isWrapText = true
         activityLabel.maxWidth = Double.MAX_VALUE
         HBox.setHgrow(activityLabel, Priority.ALWAYS)
         
@@ -318,7 +319,7 @@ class ActivityRecommendationPanel : VBox() {
      */
     private fun animateRefresh() {
         // Rotate button
-        val rotate = javafx.animation.RotateTransition(Duration.millis(500.0), refreshButton)
+        val rotate = RotateTransition(Duration.millis(500.0), refreshButton)
         rotate.byAngle = 360.0
         rotate.play()
         

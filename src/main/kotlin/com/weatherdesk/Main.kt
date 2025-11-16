@@ -1,9 +1,6 @@
 package com.weatherdesk
 
-import com.weatherdesk.config.ConfigManager
-import com.weatherdesk.repository.FirebaseRepository
-import com.weatherdesk.repository.WeatherRepository
-import com.weatherdesk.service.OpenMeteoService
+import com.weatherdesk.repository.BackendRepository
 import com.weatherdesk.view.EnhancedWeatherController
 import com.weatherdesk.viewmodel.WeatherViewModel
 import javafx.application.Application
@@ -20,7 +17,7 @@ private val logger = KotlinLogging.logger {}
  */
 class WeatherDeskApplication : Application() {
 
-    private lateinit var weatherService: OpenMeteoService
+    private lateinit var backendRepository: BackendRepository
     private lateinit var viewModel: WeatherViewModel
     private lateinit var controller: EnhancedWeatherController
 
@@ -28,14 +25,9 @@ class WeatherDeskApplication : Application() {
         try {
             logger.info { "Starting WeatherDesk application..." }
 
-            // Initialize services
-            // OpenMeteo API doesn't require API keys - it's free and open-source
-            weatherService = OpenMeteoService()
-            val firebaseRepository = FirebaseRepository()
-            val weatherRepository = WeatherRepository(weatherService, firebaseRepository)
-
-            // Initialize ViewModel
-            viewModel = WeatherViewModel(weatherRepository)
+            // Initialize backend and ViewModel
+            backendRepository = BackendRepository("http://localhost:8080")
+            viewModel = WeatherViewModel(backendRepository)
 
             // Load Enhanced FXML
             val loader = FXMLLoader(javaClass.getResource("/fxml/EnhancedWeatherView.fxml"))
@@ -90,7 +82,7 @@ class WeatherDeskApplication : Application() {
             }
 
             viewModel.onDestroy()
-            weatherService.close()
+            backendRepository.close()
             logger.info { "WeatherDesk application stopped successfully" }
         } catch (e: Exception) {
             logger.error(e) { "Error during shutdown" }

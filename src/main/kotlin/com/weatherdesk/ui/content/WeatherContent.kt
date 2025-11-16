@@ -1,7 +1,6 @@
 package com.weatherdesk.ui.content
 
 import com.weatherdesk.model.WeatherCondition
-import kotlin.random.Random
 
 /**
  * Weather trivia, motivational quotes, and fun facts

@@ -52,7 +52,7 @@ class WeatherParticleSystem(private val parent: Pane) {
         abstract fun update(deltaTime: Double, width: Double, height: Double)
         abstract fun draw(gc: GraphicsContext)
 
-        fun isDead(): Boolean = life <= 0 || y > gc.canvas.height + 50
+        fun isDead(canvasHeight: Double): Boolean = life <= 0 || y > canvasHeight + 50
     }
 
     /**
@@ -353,7 +353,7 @@ class WeatherParticleSystem(private val parent: Pane) {
 
         // Update existing particles
         particles.forEach { it.update(deltaTime, width, height) }
-        particles.removeAll { it.isDead() }
+        particles.removeAll { it.isDead(canvas.height) }
 
         // Spawn new particles
         repeat(spawnRate) {

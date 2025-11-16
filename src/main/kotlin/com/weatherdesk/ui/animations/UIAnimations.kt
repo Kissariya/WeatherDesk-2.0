@@ -3,6 +3,20 @@ package com.weatherdesk.ui.animations
 import javafx.animation.*
 import javafx.scene.Node
 import javafx.util.Duration
+import kotlin.math.pow
+import kotlin.math.sin
+
+object ElasticOutInterpolator : Interpolator() {
+    override fun curve(t: Double): Double {
+        return if (t == 0.0 || t == 1.0) {
+            t
+        } else {
+            val p = 0.3
+            val s = p / 4
+            (2.0.pow(-10 * t) * sin((t - s) * (2 * Math.PI) / p) + 1)
+        }
+    }
+}
 
 /**
  * UI Animation utilities to add "wow" factor and keep users engaged
@@ -75,9 +89,10 @@ object UIAnimations {
         node.scaleY = 0.0
         
         val timeline = Timeline(
-            KeyFrame(Duration.millis(duration),
-                KeyValue(node.scaleXProperty(), 1.0, Interpolator.ELASTIC_OUT),
-                KeyValue(node.scaleYProperty(), 1.0, Interpolator.ELASTIC_OUT)
+            KeyFrame(
+                Duration.millis(duration),
+                KeyValue(node.scaleXProperty(), 1.0, ElasticOutInterpolator),
+                KeyValue(node.scaleYProperty(), 1.0, ElasticOutInterpolator)
             )
         )
         timeline.play()

@@ -6,7 +6,15 @@ import javafx.util.Duration
  * UI animation and timing constants
  */
 object UIConstants {
+    // Padding and Spacing
+    const val STANDARD_SPACING: Double = 12.0
+    const val STANDARD_PADDING: Double = 12.0
+    const val SMALL_PADDING: Double = 6.0
+    const val LARGE_PADDING: Double = 20.0
+
     // Animation durations
+    const val SHORT_ANIMATION_DURATION: Long = 300
+    const val LONG_ANIMATION_DURATION: Long = 600
     val FADE_DURATION: Duration = Duration.millis(300.0)
     val ACTIVITY_LABEL_FADE_DURATION: Duration = Duration.millis(300.0)
     

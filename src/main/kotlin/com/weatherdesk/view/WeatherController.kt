@@ -44,7 +44,7 @@ class WeatherController {
     @FXML private lateinit var ratingStars: HBox
     @FXML private lateinit var averageRatingLabel: Label
 
-    @FXML private lateinit var firebaseStatusLabel: Label
+    @FXML private lateinit var backendStatusLabel: Label
 
     lateinit var viewModel: WeatherViewModel
 
@@ -63,7 +63,7 @@ class WeatherController {
     }
 
     private fun setupTempUnitComboBox() {
-        tempUnitComboBox.items.addAll(TemperatureUnit.values().toList())
+        tempUnitComboBox.items.addAll(TemperatureUnit.entries)
         tempUnitComboBox.selectionModel.select(TemperatureUnit.CELSIUS)
     }
 
@@ -205,6 +205,11 @@ class WeatherController {
     private fun updateWeatherDisplay(weather: com.weatherdesk.model.CurrentWeather) {
         val tempUnit = viewModel.temperatureUnit.get()
         val windUnit = viewModel.windSpeedUnit.get()
+        val conditionEnum = try {
+            WeatherCondition.valueOf(weather.condition.uppercase())
+        } catch (e: Exception) {
+            WeatherCondition.UNKNOWN
+        }
 
         cityLabel.text = weather.city
         dateLabel.text = weather.date.format(DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy"))
@@ -212,8 +217,7 @@ class WeatherController {
         conditionLabel.text = weather.conditionDescription.replaceFirstChar { it.uppercase() }
         humidityLabel.text = "${weather.humidity}%"
         windSpeedLabel.text = weather.getFormattedWindSpeed(windUnit)
-
-        weatherIcon.text = getWeatherIcon(weather.condition)
+        weatherIcon.text = getWeatherIcon(conditionEnum)
     }
 
     private fun updateForecastDisplay(forecasts: List<DailyForecast>) {
@@ -233,7 +237,12 @@ class WeatherController {
         val dayLabel = Label(forecast.date.dayOfWeek.name.substring(0, 3))
         dayLabel.styleClass.add("forecast-day")
 
-        val iconLabel = Label(getWeatherIcon(forecast.condition))
+        val conditionEnum = try {
+            WeatherCondition.valueOf(forecast.condition.uppercase())
+        } catch (e: Exception) {
+            WeatherCondition.UNKNOWN
+        }
+        val iconLabel = Label(getWeatherIcon(conditionEnum))
         iconLabel.styleClass.add("forecast-icon")
 
         val tempUnit = viewModel.temperatureUnit.get()
@@ -258,12 +267,12 @@ class WeatherController {
     }
 
     private fun updateFirebaseStatus() {
-        if (viewModel.isFirebaseAvailable()) {
-            firebaseStatusLabel.text = "Firebase: Connected ✓"
-            firebaseStatusLabel.style = "-fx-text-fill: #388E3C;"
+        if (viewModel.isBackendAvailable()) {
+            backendStatusLabel.text = "Firebase: Connected ✓"
+            backendStatusLabel.style = "-fx-text-fill: #388E3C;"
         } else {
-            firebaseStatusLabel.text = "Firebase: Not Connected (using local storage)"
-            firebaseStatusLabel.style = "-fx-text-fill: #FFA500;"
+            backendStatusLabel.text = "Firebase: Not Connected (using local storage)"
+            backendStatusLabel.style = "-fx-text-fill: #FFA500;"
         }
     }
 

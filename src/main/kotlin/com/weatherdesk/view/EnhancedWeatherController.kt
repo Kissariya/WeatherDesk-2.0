@@ -1,11 +1,11 @@
 package com.weatherdesk.view
 
-import com.weatherdesk.model.DailyForecast
-import com.weatherdesk.model.TemperatureUnit
-import com.weatherdesk.model.WeatherCondition
+import com.weatherdesk.model.*
+import com.weatherdesk.ui.animations.EngagementManager
+import com.weatherdesk.ui.animations.UIAnimations
+import com.weatherdesk.ui.components.ActivityRecommendationPanel
 import com.weatherdesk.ui.components.ForecastCarousel
 import com.weatherdesk.ui.components.InteractiveGlobe
-import com.weatherdesk.ui.components.ActivityRecommendationPanel
 import com.weatherdesk.ui.content.WeatherContent
 import com.weatherdesk.ui.effects.WeatherParticleSystem
 import com.weatherdesk.ui.theme.ThemeManager
@@ -17,8 +17,6 @@ import javafx.scene.layout.*
 import javafx.scene.text.Font
 import mu.KotlinLogging
 import java.time.format.DateTimeFormatter
-import com.weatherdesk.ui.animations.UIAnimations
-import com.weatherdesk.ui.animations.EngagementManager
 
 private val logger = KotlinLogging.logger {}
 
@@ -54,7 +52,7 @@ class EnhancedWeatherController {
 
     @FXML private lateinit var ratingStars: HBox
     @FXML private lateinit var averageRatingLabel: Label
-    @FXML private lateinit var firebaseStatusLabel: Label
+    @FXML private lateinit var backendStatusLabel: Label
 
     // New FXML components for creative UI
     @FXML private lateinit var backgroundPane: Pane
@@ -63,8 +61,8 @@ class EnhancedWeatherController {
     @FXML private lateinit var triviaLabel: Label
     @FXML private lateinit var quoteLabel: Label
     @FXML private lateinit var activityLabel: Label
+    @FXML private lateinit var activitiesRecommendationContainer: StackPane
 
-        @FXML private lateinit var activitiesRecommendationContainer: StackPane
     // ViewModel
     lateinit var viewModel: WeatherViewModel
 
@@ -72,10 +70,10 @@ class EnhancedWeatherController {
     private var particleSystem: WeatherParticleSystem? = null
     private var globe: InteractiveGlobe? = null
     private var forecastCarousel: ForecastCarousel? = null
-        private var engagementManager: EngagementManager? = null
+    private var engagementManager: EngagementManager? = null
 
     // State
-        private var activityPanel: ActivityRecommendationPanel? = null
+    private var activityPanel: ActivityRecommendationPanel? = null
     private var currentRating = 0
 
     @FXML
@@ -120,12 +118,12 @@ class EnhancedWeatherController {
             forecastCarousel = ForecastCarousel()
             forecastCarouselContainer.children.add(forecastCarousel)
 
-                    // Initialize activity recommendation panel (CORE FEATURE)
-        logger.info { "Initializing activity recommendation panel" }
-        activityPanel = ActivityRecommendationPanel()
-        activitiesRecommendationContainer.children.add(activityPanel)
+            // Initialize activity recommendation panel (CORE FEATURE)
+            logger.info { "Initializing activity recommendation panel" }
+            activityPanel = ActivityRecommendationPanel()
+            activitiesRecommendationContainer.children.add(activityPanel)
 
-                        // Initialize engagement manager with content rotation
+            // Initialize engagement manager with content rotation
             engagementManager = EngagementManager(
                 triviaLabel = triviaLabel,
                 quoteLabel = quoteLabel,
@@ -133,13 +131,22 @@ class EnhancedWeatherController {
                 forecastCarousel = forecastCarousel
             )
 
+            // Wire user interaction -> stop autoplay (safe)
+            forecastCarousel?.onUserInteraction = {
+                try {
+                    engagementManager?.stopCarouselAutoPlay()
+                } catch (e: Exception) {
+                    logger.warn(e) { "Failed to stop autoplay on user interaction" }
+                }
+            }
+
             // Apply entrance animations for premium feel
-            UIAnimations.fadeIn(weatherDataBox, 1000, 200)
-            UIAnimations.slideInFromTop(globeContainer, 800, 100)
-            UIAnimations.scaleUp(forecastCarouselContainer, 600, 300)
-            UIAnimations.fadeIn(triviaLabel, 800, 400)
-            UIAnimations.fadeIn(quoteLabel, 800, 500)
-            UIAnimations.fadeIn(activityLabel, 800, 600)
+            UIAnimations.fadeIn(weatherDataBox, 1000.0, 200.0)
+            UIAnimations.slideInFromTop(globeContainer, 800.0, 100.0)
+            UIAnimations.scaleUp(forecastCarouselContainer, 600.0)
+            UIAnimations.fadeIn(triviaLabel, 800.0, 400.0)
+            UIAnimations.fadeIn(quoteLabel, 800.0, 500.0)
+            UIAnimations.fadeIn(activityLabel, 800.0, 600.0)
 
             logger.info { "Enhanced UI components initialized successfully" }
         } catch (e: Exception) {
@@ -150,15 +157,16 @@ class EnhancedWeatherController {
     fun setViewModel(viewModel: WeatherViewModel) {
         this.viewModel = viewModel
         bindViewModel()
-        updateFirebaseStatus()
+        updateBackendStatus()
     }
 
     private fun setupTempUnitComboBox() {
-        tempUnitComboBox.items.addAll(TemperatureUnit.values().toList())
+        tempUnitComboBox.items.addAll(TemperatureUnit.entries)
         tempUnitComboBox.selectionModel.select(TemperatureUnit.CELSIUS)
     }
 
     private fun setupRatingStars() {
+        ratingStars.children.clear()
         for (i in 1..5) {
             val star = Label("⭐")
             star.styleClass.add("rating-star")
@@ -174,11 +182,11 @@ class EnhancedWeatherController {
                 highlightStars(i)
             }
 
-            ratingStars.setOnMouseExited {
-                updateStarDisplay()
-            }
-
             ratingStars.children.add(star)
+        }
+
+        ratingStars.setOnMouseExited {
+            updateStarDisplay()
         }
     }
 
@@ -300,54 +308,53 @@ class EnhancedWeatherController {
     /**
      * Update weather display with enhanced UI features
      */
-    private fun updateWeatherDisplay(weather: com.weatherdesk.model.CurrentWeather) {
+    private fun updateWeatherDisplay(weather: CurrentWeather) {
         val tempUnit = viewModel.temperatureUnit.get()
         val windUnit = viewModel.windSpeedUnit.get()
 
-        // Update basic weather info
+        // Basic weather info
         cityLabel.text = weather.city
         dateLabel.text = weather.date.format(DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy"))
         temperatureLabel.text = String.format("%.0f", weather.getTemperature(tempUnit))
         conditionLabel.text = weather.conditionDescription.replaceFirstChar { it.uppercase() }
         humidityLabel.text = "${weather.humidity}%"
         windSpeedLabel.text = weather.getFormattedWindSpeed(windUnit)
-        weatherIcon.text = getWeatherIcon(weather.condition)
+        val conditionEnum = WeatherCondition.fromDescription(weather.condition)
+        weatherIcon.text = getWeatherIcon(conditionEnum)
 
-        // NEW: Update theme based on weather and time
-        updateTheme(weather.condition)
+        // Update theme based on weather and time
+        updateTheme(conditionEnum)
 
-        // NEW: Update particle effects
-        updateParticles(weather.condition)
+        // Update particle effects
+        updateParticles(conditionEnum)
 
-        // NEW: Update contextual content
+        // Update contextual content
         updateWeatherContent(weather)
 
-                // Start engagement features to keep users hooked
-                try {try {
-            if (engagementManager != null) {
-
-                        // NEW: Update activity recommendations panel (CORE FEATURE)
+        // Update activity recommendations panel
         try {
-            activityPanel?.updateWeather(weather.condition, weather.temperatureCelsius)
+            activityPanel?.updateWeather(conditionEnum, weather.getTemperature(tempUnit))
             logger.info { "Activity panel updated with weather data" }
         } catch (e: Exception) {
             logger.error(e) { "Error updating activity panel" }
         }
-                engagementManager?.startContentRotation()
-                engagementManager?.startCarouselAutoPlay()
 
-                                // Setup callback to stop auto-play on user interaction
-                                                forecastCarousel.onUserInteraction = {
-                                                                        engagementManager?.stopCarouselAutoPlay()
-                                                                                        }
-                logger.info { "Engagement features started successfully" }
-            } else {
-                logger.warn("EngagementManager not initialized - content rotation disabled")
+        // Engagement features to keep users hooked
+        try {
+            engagementManager?.startContentRotation(conditionEnum,weather.getTemperature(tempUnit))
+            engagementManager?.startCarouselAutoPlay()
+
+            // Setup callback to stop auto-play on user interaction
+            forecastCarousel?.onUserInteraction = {
+                engagementManager?.stopCarouselAutoPlay()
             }
+            logger.info { "Engagement features started successfully" }
         } catch (e: Exception) {
             logger.error("Failed to start engagement features", e)
-            // Features will gracefully degrade - app remains functional
         }
+    }
+
+    // Update theme
     private fun updateTheme(condition: WeatherCondition) {
         try {
             val timeOfDay = ThemeManager.getTimeOfDay()
@@ -374,15 +381,18 @@ class EnhancedWeatherController {
     /**
      * Update contextual weather content (trivia, quotes, activities)
      */
-    private fun updateWeatherContent(weather: com.weatherdesk.model.CurrentWeather) {
+    private fun updateWeatherContent(weather: CurrentWeather) {
         try {
-            triviaLabel.text = WeatherContent.getWeatherTrivia(weather.condition)
+            val conditionString = weather.condition
+            val conditionEnum = WeatherCondition.fromDescription(conditionString)
+
+            triviaLabel.text = WeatherContent.getWeatherTrivia(conditionEnum)
             quoteLabel.text = WeatherContent.getMotivationalQuote(
-                weather.condition,
+                conditionEnum,
                 weather.temperatureCelsius
             )
             activityLabel.text = WeatherContent.getActivitySuggestion(
-                weather.condition,
+                conditionEnum,
                 weather.temperatureCelsius
             )
             logger.info { "Weather content updated" }
@@ -417,13 +427,18 @@ class EnhancedWeatherController {
         }
     }
 
-    private fun updateFirebaseStatus() {
-        if (viewModel.isFirebaseAvailable()) {
-            firebaseStatusLabel.text = "Firebase: Connected ✓"
-            firebaseStatusLabel.style = "-fx-text-fill: #388E3C;"
-        } else {
-            firebaseStatusLabel.text = "Firebase: Not Connected (using local storage)"
-            firebaseStatusLabel.style = "-fx-text-fill: #FFA500;"
+    private fun updateBackendStatus() {
+        try {
+            if (viewModel.isBackendAvailable()) {
+                backendStatusLabel.text = "Backend: Connected ✓"
+                backendStatusLabel.style = "-fx-text-fill: #388E3C;"
+            } else {
+                backendStatusLabel.text = "Backend: Not Connected"
+                backendStatusLabel.style = "-fx-text-fill: #FFA500;"
+            }
+        } catch (e: Exception) {
+            backendStatusLabel.isVisible = false
+            backendStatusLabel.isManaged = false
         }
     }
 
@@ -478,8 +493,8 @@ class EnhancedWeatherController {
         try {
             particleSystem?.dispose()
             globe?.dispose()
-                        activityPanel?.dispose()
-                        engagementManager?.stopAll()
+            activityPanel?.dispose()
+            engagementManager?.stopAll()
             logger.info { "Enhanced UI components cleaned up successfully" }
         } catch (e: Exception) {
             logger.error(e) { "Error during cleanup" }
