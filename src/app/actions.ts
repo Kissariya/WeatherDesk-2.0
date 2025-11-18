@@ -6,7 +6,9 @@ import { z } from "zod";
 // Backend API configuration
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8080";
 
-// City to coordinates mapping (you can expand this or use a geocoding service)
+// Remnant demo coordinates
+/*
+// City to coordinates mapping
 const CITY_COORDS: Record<string, { lat: number; lng: number }> = {
   "london": { lat: 51.5074, lng: -0.1278 },
   "new york": { lat: 40.7128, lng: -74.0060 },
@@ -22,7 +24,7 @@ function generateMockData(city: string): WeatherData {
   const hash = city.split("").reduce((h, c) => ((h << 5) - h) + c.charCodeAt(0), 0);
   const conditions = ["Clear", "Clouds", "Rain", "Snow", "Thunderstorm", "Mist"];
   const now = new Date();
-  
+
   const current = {
     city: city.split(',')[0].split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
     temperature: Math.round(10 + (Math.abs(hash) % 15) + Math.sin(now.getHours()) * 5),
@@ -41,6 +43,7 @@ function generateMockData(city: string): WeatherData {
 
   return { current, forecast };
 }
+*/
 
 export async function getWeather(
   prevState: WeatherState,
@@ -55,103 +58,63 @@ export async function getWeather(
 
   if (!validatedFields.success) {
     return {
-      error: validatedFields.error.flatten().fieldErrors.city?.[0] ?? "Invalid city name.",
+      error: validatedFields.error.flatten().fieldErrors.city?.[0] || "Invalid city name.",
     };
   }
 
-  const { city } = validatedFields.data;
-  const cityLower = city.toLowerCase();
+  const city = validatedFields.data.city;
 
   try {
-    // Get coordinates for the city
-    const coords = CITY_COORDS[cityLower];
-    if (!coords) {
-      return {
-        error: `City "${city}" not found. Supported cities: ${Object.keys(CITY_COORDS).map(c => c.charAt(0).toUpperCase() + c.slice(1)).join(", ")}.`,
-      };
-    }
-
-    // Call the backend API
+    // Call the backend for city
     const response = await fetch(
-      `${BACKEND_URL}/weather?latitude=${coords.lat}&longitude=${coords.lng}`,
-      { method: "GET" }
+        `${BACKEND_URL}/weather?city=${encodeURIComponent(city)}`,
+        { method: "GET" }
     );
 
     if (!response.ok) {
       return {
-        error: `Failed to fetch weather data. Status: ${response.status}`,
+        error: `Failed to fetch weather data. Backend Error (${response.status}): ${await response.text()}`,
       };
     }
 
     const backendData = await response.json();
 
-    // Transform backend data to match frontend format
+    // Transform data so frontend and backend format matches
     const weatherData: WeatherData = {
       current: {
-        city: city.split(',')[0].split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
-        temperature: Math.round(backendData.current.temperature),
-        condition: getWeatherCondition(backendData.current.weatherCode),
-        humidity: backendData.current.relativeHumidity,
-        windSpeed: Math.round(backendData.current.windSpeed),
-        date: new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+          city: backendData.current.city,
+          temperature: Math.round(backendData.current.temperatureCelsius),
+          condition: backendData.current.condition,
+          humidity: backendData.current.humidity,
+          windSpeed: Math.round(backendData.current.windSpeedMps),
+          date: new Date(backendData.current.date).toLocaleDateString('en-US',
+              {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'}),
+          conditionDescription: backendData.conditionDescription,
       },
-      forecast: backendData.daily.time.slice(1, 6).map((dateStr: string, i: number) => ({
-        day: new Date(dateStr).toLocaleDateString('en-US', { weekday: 'short' }),
-        high: Math.round(backendData.daily.temperatureMax[i + 1]),
-        low: Math.round(backendData.daily.temperatureMin[i + 1]),
-        condition: getWeatherCondition(backendData.daily.weatherCode[i + 1]),
+      forecast: backendData.forecast.slice(1,6).map((day: any) => ({
+        day: new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' }),
+        high: Math.round(day.highTempCelsius),
+        low: Math.round(day.lowTempCelsius),
+        condition: day.conditionDescription,
       })),
     };
 
     return {
-      weatherData: weatherData,
+      weatherData,
       message: `Successfully fetched weather for ${weatherData.current.city}.`,
     };
   } catch (error) {
     console.error("Error fetching weather:", error);
     return {
-      error: "Failed to fetch weather data. Please check your backend connection.",
+      error: "Failed to fetch weather data. Please check backend connection.",
     };
   }
 }
 
 // Map Open-Meteo weather codes to readable conditions
 // https://open-meteo.com/en/docs
-function getWeatherCondition(weatherCode: number): string {
-  const weatherMap: Record<number, string> = {
-    0: "Clear",
-    1: "Mainly Clear",
-    2: "Partly Cloudy",
-    3: "Overcast",
-    45: "Foggy",
-    48: "Foggy",
-    51: "Light Drizzle",
-    53: "Drizzle",
-    55: "Heavy Drizzle",
-    56: "Freezing Drizzle",
-    57: "Freezing Drizzle",
-    61: "Light Rain",
-    63: "Rain",
-    65: "Heavy Rain",
-    66: "Freezing Rain",
-    67: "Freezing Rain",
-    71: "Light Snow",
-    73: "Snow",
-    75: "Heavy Snow",
-    77: "Snow Grains",
-    80: "Light Showers",
-    81: "Showers",
-    82: "Heavy Showers",
-    85: "Light Snow Showers",
-    86: "Snow Showers",
-    95: "Thunderstorm",
-    96: "Thunderstorm with Hail",
-    99: "Thunderstorm with Hail",
-  };
-  return weatherMap[weatherCode] || "Clear";
-}
-
 export async function rateForecast(rating: number, city: string) {
-  console.log(`Rating for ${city}: ${rating} stars`);
-  await new Promise((resolve) => setTimeout(resolve, 500));
-  return { message: `Thank you for rating the forecast for ${city}!` };
+    console.log(`Rating for ${city}: ${rating} stars`);
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    return { message: `Thank you for rating the forecast for ${city}!` }
+}

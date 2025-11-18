@@ -1,58 +1,22 @@
 "use client";
 
 import { useActionState } from "react";
-import { useFormStatus } from "react-dom";
 import { useEffect, useRef } from "react";
-import { CloudSun, Search } from "lucide-react";
+import { Search } from "lucide-react";
 
 import { getWeather } from "@/app/actions";
-import type { WeatherData, WeatherState } from "@/lib/types";
+import type { WeatherState } from "@/lib/types";
 import { Input } from "@/components/ui/input";
 import { SubmitButton } from "@/components/submit-button";
 import { useToast } from "@/hooks/use-toast";
-import { CurrentWeatherCard } from "./current-weather-card";
-import { ForecastCard } from "./forecast-card";
 import { Card, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { WeatherResults } from "@/components/weather-results";
 
 const initialState: WeatherState = {
-  weatherData: null,
-  error: null,
-  message: null
+  weatherData: undefined,
+  error: undefined,
+  message: undefined,
 };
-
-function WeatherResults({ data }: { data: WeatherData | null | undefined }) {
-  const { pending } = useFormStatus();
-
-  if (pending) {
-    return (
-      <div className="space-y-6">
-        <Skeleton className="h-[230px] w-full rounded-lg" />
-        <Skeleton className="h-[280px] w-full rounded-lg" />
-      </div>
-    );
-  }
-
-  if (data) {
-    return (
-      <div className="space-y-6 animate-in fade-in-50 duration-500">
-        <CurrentWeatherCard data={data.current} />
-        <ForecastCard forecast={data.forecast} current={data.current} />
-      </div>
-    );
-  }
-
-  return (
-    <Card className="border-dashed">
-      <CardContent className="p-10 flex flex-col items-center justify-center text-center text-muted-foreground h-96">
-        <CloudSun className="w-16 h-16 mb-4 text-primary"/>
-        <h3 className="text-lg font-semibold text-foreground">Welcome to WeatherDesk</h3>
-        <p>Enter a city to get the latest weather forecast.</p>
-      </CardContent>
-    </Card>
-  );
-}
-
 
 export function WeatherDashboard() {
   const [state, formAction] = useActionState(getWeather, initialState);
@@ -60,18 +24,22 @@ export function WeatherDashboard() {
   const initialLoadRef = useRef(true);
 
   useEffect(() => {
-    if (initialLoadRef.current) {
-      const lastCity = localStorage.getItem('lastCity');
-      if (lastCity) {
-        const formData = new FormData();
-        formData.append('city', lastCity);
-        formAction(formData);
+      if (typeof window === "undefined") return;
+
+      if(initialLoadRef.current) {
+          const lastCity = localStorage.getItem("lastCity");
+          if (lastCity) {
+              const formData = new FormData();
+              formData.append("city", lastCity);
+              formAction(formData);
+          }
+          initialLoadRef.current = false;
       }
-      initialLoadRef.current = false;
-    }
   }, [formAction]);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
     if (state.error && !initialLoadRef.current) {
       toast({
         variant: "destructive",

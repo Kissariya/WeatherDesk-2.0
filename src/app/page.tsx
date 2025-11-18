@@ -1,3 +1,5 @@
+"use client";
+
 import { WeatherDashboard } from "@/components/weather-dashboard";
 
 export default function Home() {
@@ -9,6 +11,7 @@ export default function Home() {
         </h1>
         <p className="text-muted-foreground mt-2 text-lg">Your personal weather station</p>
       </header>
+
       <main className="w-full max-w-4xl">
         <WeatherDashboard />
       </main>

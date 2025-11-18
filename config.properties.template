@@ -1,13 +1,9 @@
 # WeatherDesk Configuration Template
-# Copy this file to config.properties and fill in your values
+# Copy this file to config.properties and fill
 
-# OpenWeatherMap API Configuration
-# Get your free API key from: https://openweathermap.org/api
-openweathermap.api.key=YOUR_API_KEY_HERE
-
-# Firebase Configuration (Optional)
-# Path to your Firebase service account credentials JSON file
+# Firebase Configuration
+# Path to Firebase service account credentials JSON file
 firebase.credentials.path=firebase-credentials.json
 
-# Firebase project ID (usually auto-detected from credentials file)
+# Firebase project ID
 # firebase.project.id=your-project-id

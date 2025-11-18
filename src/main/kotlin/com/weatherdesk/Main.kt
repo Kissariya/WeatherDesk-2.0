@@ -36,7 +36,7 @@ class WeatherDeskApplication : Application() {
             val root = loader.load<javafx.scene.Parent>()
 
             // Get controller and inject ViewModel
-            controller = loader.getController<EnhancedWeatherController>()
+            controller = loader.getController()
             controller.setViewModel(viewModel)
 
             // Setup scene with larger size for enhanced UI
